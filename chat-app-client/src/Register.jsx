@@ -4,12 +4,12 @@ import {UserContext} from './UserContext';
 export default function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  //const {setUsername:setLoggedInUsername,setId}=useContext(UserContext);
+  const {setUsername:setLoggedInUsername,setId}=useContext(UserContext);
   async function submitRegistration(ev){
     ev.preventDefault();
    const {data}= await axios.post('/register',{username,password});
-    // setLoggedInUsername(username);
-    // setId(data.id);
+    setLoggedInUsername(username);
+     setId(data.id);
   }
   return (
     <div className="bg-blue-50 h-screen flex items-center" >

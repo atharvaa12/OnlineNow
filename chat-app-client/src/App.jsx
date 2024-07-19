@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 import Register from './Register'
-
+import { UserContextProvider } from './UserContext'
 
 function App() {
   axios.defaults.baseURL = 'http://localhost:4000';
@@ -11,9 +11,9 @@ function App() {
 
   return (
     
-    // <UserContextProvider>
+    <UserContextProvider>
       <Register/>
-    //</UserContextProvider>
+    </UserContextProvider>
     
   )
 }
