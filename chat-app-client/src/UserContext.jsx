@@ -9,8 +9,8 @@ export function UserContextProvider({children}){
     useEffect(()=>{
         async function getProfileStatus(){
             const {data}=await axios.get('/profile',{withCredentials:true});
-            console.log(data);
-            console.log("hello");
+            setId(data.userId);
+            setUsername(data.username);
         }
         getProfileStatus();
     },[]);
