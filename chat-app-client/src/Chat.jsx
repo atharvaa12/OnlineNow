@@ -5,74 +5,94 @@ import { useContext } from "react";
 import { UserContext } from "./UserContext";
 import axios from "axios";
 
+
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
   const loggedInUserId = useContext(UserContext).id;
+  
+  const LoggedInUsername = useContext(UserContext).username;
+  const setLoggedInUsername=useContext(UserContext).setUsername;
+  const setLoggedInUserId=useContext(UserContext).setId;
   const [InputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [scrollInstantly, setScrollInstantly] = useState(false);
   const divUnderMessages = useRef(null);
+ 
   useEffect(() => {
+    connectToWs();
+    
+  }, []);
+  function connectToWs() {
+    
     const socket = new WebSocket("ws://localhost:4000");
-    // socket.addEventListener("open", () => {
-    //     console.log("connected to server");
-    // });
+   
+    console.log("hello ",LoggedInUsername);
 
     socket.addEventListener("message", handleMessage);
+    socket.addEventListener("close", () => {
+      console.log("ws closed");
+      setTimeout(() => {
+        connectToWs();
+      }, 2000);
+      
+    });
     setWs(socket);
-    return () => {
-      socket.close();
-    };
-  }, []);
+    
+    
+  
+  }
   useEffect(() => {
-    if (divUnderMessages.current && scrollInstantly===false) {
+    if (divUnderMessages.current && scrollInstantly === false) {
       console.log(messages);
-      divUnderMessages.current.scrollIntoView({ behavior: "smooth" , block: "end"});
+      divUnderMessages.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
     }
   }, [messages]);
-  useEffect(()=>{
-    if(scrollInstantly===true){
-      if(divUnderMessages.current){
-        divUnderMessages.current.scrollIntoView({behavior:"instant",block:"end"});
+  useEffect(() => {
+    if (scrollInstantly === true) {
+      if (divUnderMessages.current) {
+        divUnderMessages.current.scrollIntoView({
+          behavior: "instant",
+          block: "end",
+        });
         setScrollInstantly(false);
+      }
     }
-  }
-  },[scrollInstantly]);
-  
-  
-  useEffect(()=>{
-   
-    if(selectedUserId){
-        
-        axios.get('/messages/'+selectedUserId).then(response=>{
-          const messageHistory=response.data;
-          const updatedMessages=messageHistory.map(message=>{
-            if(message.sender===loggedInUserId){
-              return  {receiver:selectedUserId,message:message.message};
-            }
-            else if(message.receiver===loggedInUserId){
-              return {sender:selectedUserId,message:message.message};
+  }, [scrollInstantly]);
+
+  useEffect(() => {
+    if (selectedUserId) {
+      axios
+        .get("/messages/" + selectedUserId)
+        .then((response) => {
+          const messageHistory = response.data;
+          const updatedMessages = messageHistory.map((message) => {
+            if (message.sender === loggedInUserId) {
+              return { receiver: selectedUserId, message: message.message };
+            } else if (message.receiver === loggedInUserId) {
+              return { sender: selectedUserId, message: message.message };
             }
             return null;
-           
           });
-          
+
           setScrollInstantly(true);
           setMessages(updatedMessages);
-
-        }).catch(e=>{
+        })
+        .catch((e) => {
           console.log(e);
           alert("error fetching data");
         });
-        
     }
-  },[selectedUserId]);
-  
+  }, [selectedUserId]);
+
   function showOnlinePeople(onlinePeopleArray) {
     const people = {};
     onlinePeopleArray.forEach((person) => {
+      console.log("person is",person);
       if (person.userId != loggedInUserId)
         people[person.userId] = person.username;
     });
@@ -86,7 +106,7 @@ export default function Chat() {
       showOnlinePeople(messageData.online);
     }
     if ("message" in messageData && "senderId" in messageData) {
-      console.log("message recieved", messageData);
+      // console.log("message recieved", messageData);
       setMessages((m) => {
         const updatedMessages = [
           ...m,
@@ -96,16 +116,27 @@ export default function Chat() {
       });
     }
   }
+  function logout(){
+      
+      axios.post('logout').then(()=>{
+
+        setLoggedInUsername(null);
+        setLoggedInUserId(null);
+        ws.close();
+        console.log("disconnected");
+       }); 
+    
+  }
   function selectContact(userId) {
     if (userId != selectedUserId) {
       console.log("selected user", userId);
     }
     setSelectedUserId(userId);
   }
-  function sendMessage(ev) {
+  async function sendMessage(ev) {
     ev.preventDefault();
     if (InputMessage) {
-      ws.send(
+      await ws.send(
         JSON.stringify({
           sender: loggedInUserId,
           receiver: selectedUserId,
@@ -124,22 +155,29 @@ export default function Chat() {
   }
   return (
     <div className="flex h-screen">
-      <div className="bg-white w-1/3">
+      <div className="bg-white w-1/3 flex flex-col">
         <div className="bold text-blue-600 text-center pb-2 pt-2">Contacts</div>
-
-        {Object.keys(onlinePeople).map((userId) => (
-          <div
-            key={userId}
-            onClick={() => selectContact(userId)}
-            className={
-              " flex gap-2 border-b border-gray-100 py-2 pl-2 cursor-pointer " +
-              (userId === selectedUserId ? "bg-blue-100" : "")
-            }
-          >
-            <Avatar username={onlinePeople[userId]} />
-            <span className="pt-0.5">{onlinePeople[userId]}</span>
+        <div className="flex-grow">
+          {Object.keys(onlinePeople).map((userId) => (
+            <div
+              key={userId}
+              onClick={() => selectContact(userId)}
+              className={
+                " flex gap-2 border-b border-gray-100 py-2 pl-2 cursor-pointer " +
+                (userId === selectedUserId ? "bg-blue-100" : "")
+              }
+            >
+              <Avatar username={onlinePeople[userId]} />
+              <span className="pt-0.5">{onlinePeople[userId]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="p-2 text-center">
+          
+          <div className="bg-red-500 inline-block p-1.5 ">
+            <button className="text-white rounded-sm " onClick={logout}>logout</button>
           </div>
-        ))}
+        </div>
       </div>
       <div className="flex flex-col bg-indigo-50  w-2/3 p-2">
         <div className="flex-grow flex items-center justify-center">
