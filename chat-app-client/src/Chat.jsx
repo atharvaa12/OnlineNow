@@ -3,6 +3,8 @@ import { useState } from "react";
 import Avatar from "./Avatar";
 import { useContext } from "react";
 import { UserContext } from "./UserContext";
+import axios from "axios";
+
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
@@ -10,6 +12,7 @@ export default function Chat() {
   const loggedInUserId = useContext(UserContext).id;
   const [InputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [scrollInstantly, setScrollInstantly] = useState(false);
   const divUnderMessages = useRef(null);
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:4000");
@@ -24,13 +27,49 @@ export default function Chat() {
     };
   }, []);
   useEffect(() => {
-    console.log(messages);
-  }, [messages]);
-  useEffect(() => {
-    if (divUnderMessages.current) {
-      divUnderMessages.current.scrollIntoView({ behavior: "smooth" });
+    if (divUnderMessages.current && scrollInstantly===false) {
+      console.log(messages);
+      divUnderMessages.current.scrollIntoView({ behavior: "smooth" , block: "end"});
     }
   }, [messages]);
+  useEffect(()=>{
+    if(scrollInstantly===true){
+      if(divUnderMessages.current){
+        divUnderMessages.current.scrollIntoView({behavior:"instant",block:"end"});
+        setScrollInstantly(false);
+    }
+  }
+  },[scrollInstantly]);
+  
+  
+  useEffect(()=>{
+   
+    if(selectedUserId){
+        
+        axios.get('/messages/'+selectedUserId).then(response=>{
+          const messageHistory=response.data;
+          const updatedMessages=messageHistory.map(message=>{
+            if(message.sender===loggedInUserId){
+              return  {receiver:selectedUserId,message:message.message};
+            }
+            else if(message.receiver===loggedInUserId){
+              return {sender:selectedUserId,message:message.message};
+            }
+            return null;
+           
+          });
+          
+          setScrollInstantly(true);
+          setMessages(updatedMessages);
+
+        }).catch(e=>{
+          console.log(e);
+          alert("error fetching data");
+        });
+        
+    }
+  },[selectedUserId]);
+  
   function showOnlinePeople(onlinePeopleArray) {
     const people = {};
     onlinePeopleArray.forEach((person) => {

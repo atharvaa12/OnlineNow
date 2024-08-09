@@ -25,6 +25,30 @@ const jwtSecret = process.env.JWT_SECRET;
 app.get("/test", (req, res) => {
   res.json("Hello World");
 });
+app.get('/messages/:userId',(req,res)=>{
+        const {userId}=req.params;
+        const token=req.cookies?.token;
+        if(token){
+            jwt.verify(token,jwtSecret,{},async (err,decodedToken)=>{
+                if(err) throw err;
+                try{
+                const messages=await MessageModel.find({
+                    $or:[
+                        {sender:userId,receiver:decodedToken.userId},
+                        {sender:decodedToken.userId,receiver:userId}
+                    ]
+                }).sort({createdAt:1});
+                res.json(messages);
+              }
+              catch(e){
+                res.status(500).json({message:"error fetching messages"});
+              }
+            });
+        }
+        else{
+            res.status(401).json({message:"no token"});
+        }
+});
 app.get('/profile',(req,res)=>{
     const token=req.cookies?.token;
     if(token){
