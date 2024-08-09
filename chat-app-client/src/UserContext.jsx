@@ -8,9 +8,14 @@ export function UserContextProvider({children}){
 
     useEffect(()=>{
         async function getProfileStatus(){
+            try{
             const {data}=await axios.get('/profile',{withCredentials:true});
             setId(data.userId);
             setUsername(data.username);
+            }
+            catch(e){
+                console.log("no token");
+            }
         }
         getProfileStatus();
     },[]);

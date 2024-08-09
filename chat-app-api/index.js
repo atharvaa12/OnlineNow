@@ -109,14 +109,14 @@ wss.on("connection",(connection, req)=>{
       const parsedMessageJson=JSON.parse(message);
       const messageString=parsedMessageJson.message;
       const senderId=parsedMessageJson.sender;
-      const recieverId=parsedMessageJson.reciever;
+      const receiverId=parsedMessageJson.receiver;
       
-     // const messageDoc=await MessageModel.create({sender:senderId,receiver:recieverId,message:messageString});
-      const recievers=[...wss.clients].filter(c=>c.userId===recieverId);
+      const messageDoc=await MessageModel.create({sender:senderId,receiver:receiverId,message:messageString});
+      const receivers=[...wss.clients].filter(c=>c.userId===receiverId);
       
       const messageToSend=JSON.stringify({message:messageString,senderId});
-      if(recievers.length>0){
-        recievers.forEach(r=>r.send(messageToSend));
+      if(receivers.length>0){
+        receivers.forEach(r=>r.send(messageToSend));
       }
       
     });
